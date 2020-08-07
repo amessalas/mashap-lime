@@ -192,14 +192,13 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
         return np.mean(y_50_list, axis=0)
 
 
-def consistency_results(mashap_d, lime_d):
+def consistency_results(mashap_d, lime_d, datasets):
     """
     Calculates all consistency metrics for MASHAP and LIME scores
     """
     d_get = lambda d, ds, model, metric, sign, hide_m: d[ds][model][metric][sign][hide_m]
     x = np.linspace(0, 1, 11)
     # Overall results
-    datasets = ['adult', 'default-of-credit-card-clients'] #, 'musk', 'parkinson-speech-uci']
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
 
     results_dict_keep = dict()
@@ -235,7 +234,7 @@ def consistency_results(mashap_d, lime_d):
     return results_dict_keep, results_dict_remove
 
 
-def write_excel(mashap_consistency_dict, lime_consistency_dict):
+def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
     wb = Workbook()
     sheet1 = wb.add_sheet('Sheet 1')
     sheet2 = wb.add_sheet('Sheet 2')
@@ -250,7 +249,7 @@ def write_excel(mashap_consistency_dict, lime_consistency_dict):
     for metric, sheet in zip(['keep', 'remove'], [sheet1, sheet2]):
         row = 0
         x = np.linspace(0, 1, 11)
-        for ds in ['adult', 'default-of-credit-card-clients']:# 'musk', 'hill-valley']:
+        for ds in datasets:
             for model in ["knn", "dt", "rf", "gbc", "mlp"]:
                 for sign in ['positive', 'negative', 'absolute']:
                     for hide_m in ['mask', 'resample', 'impute']:
