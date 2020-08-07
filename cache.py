@@ -38,9 +38,6 @@ def make_test_set_idx(datasets, trained_models_dict):
         x, y = fetch_data(dataset, version)
         _, x_test, _, _ = train_test_split(x, y, test_size=0.3, random_state=42)
 
-        if x_test.shape[0] < 100:
-            print('erroooooooooooooor', x_test.shape[0])
-
         idx_dict_i = dict()
         for model_key, model in trained_models_dict.get(dataset).items():
             py_test = model.predict(x_test)
