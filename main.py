@@ -132,9 +132,9 @@ except FileNotFoundError:
 ########################################################################
 # print results
 ########################################################################
-runtime_calculations(mashap_runtime_dict, lime_runtime_dict)
-
 datasets = [ds for ds, v, t in openml_datasets_ids]
+
+runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
 write_excel(mashap_consistency_dict, lime_consistency_dict, datasets)
 
 

@@ -19,14 +19,7 @@ def timeit_context(name, time_trojan):
     print("{} {} seconds".format(name, int(elapsed_time)))
 
 
-def runtime_calculations(mashap_d, lime_d):
-    datasets = [
-        "adult",
-        "default-of-credit-card-clients",
-        "musk",
-        #"parkinson-speech-uci",
-      #  "house_sales",
-    ]
+def runtime_calculations(mashap_d, lime_d, datasets):
     lime_time_mean, mashap_time_mean = [], []
     for ds in datasets:
         t_l = np.mean(list(lime_d.get(ds).values()))
