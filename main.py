@@ -1,13 +1,13 @@
 import joblib
 import os
 from tqdm import tqdm
-from mashap_lime.cache import (
+from cache import (
     train_cache_models,
     calculate_cache_scores,
     make_test_set_idx,
 )
-from mashap_lime.prepare_data import fetch_data
-from mashap_lime.comparison_metrics import consistency_metric, runtime_calculations, \
+from prepare_data import fetch_data
+from comparison_metrics import consistency_metric, runtime_calculations, \
     consistency_results, write_excel
 from sklearn.model_selection import train_test_split
 
@@ -21,27 +21,27 @@ openml_datasets_ids = [
     # ("default-of-credit-card-clients", "active", "classification"),
     # ("musk", "active", "classification"),
     # ("hill-valley", 1, "classification"),
-    ("ozone-level-8hr", "active", "classification"),
-    ("pc1", "active", "classification"),
-    ("pc2", "active", "classification"),
-    ("pc3", "active", "classification"),
-    ("pc4", "active", "classification"),
-    ("spambase", "active", "classification"),
-    ("climate-model-simulation-crashes", 1, "classification"),
-    ("kr-vs-kp", "active", "classification"),
-    ("cylinder-bands", "active", "classification"),
-    # ("ionosphere", "active", "classification"),
-    # ("kc3", "active", "classification"),
-    # ("qsar-biodeg", "active", "classification"),
-    # ("SPECTF", 1, "classification"),
-    # ("credit-g", "active", "classification"),
-    # ("kc1", "active", "classification"),
-    # ("mushroom", "active", "classification"),
-    # ("ringnorm", "active", "classification"),
-    # ("twonorm", "active", "classification"),
-    # ("bank-marketing", 1, "classification"),
-    # ("vote", 1, "classification"),
-    # ("credit-approval", "active", "classification"),
+    # ("ozone-level-8hr", "active", "classification"),
+    # ("pc1", "active", "classification"),
+    # ("pc2", "active", "classification"),
+    # ("pc3", "active", "classification"),
+    # ("pc4", "active", "classification"),
+    # ("spambase", "active", "classification"),
+    # ("climate-model-simulation-crashes", 1, "classification"),
+    # ("kr-vs-kp", "active", "classification"),
+    # ("cylinder-bands", "active", "classification"),
+    ("ionosphere", "active", "classification"),
+    ("kc3", "active", "classification"),
+    ("qsar-biodeg", "active", "classification"),
+    ("SPECTF", 1, "classification"),
+    ("credit-g", "active", "classification"),
+    ("kc1", "active", "classification"),
+    ("mushroom", "active", "classification"),
+    ("ringnorm", "active", "classification"),
+    ("twonorm", "active", "classification"),
+    ("bank-marketing", 1, "classification"),
+    ("vote", 1, "classification"),
+    ("credit-approval", "active", "classification")
 ]
 ########################################################################
 # train models on every dataset (and cache them)

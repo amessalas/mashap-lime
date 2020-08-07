@@ -1,10 +1,10 @@
 import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
-from mashap_lime.prepare_data import fetch_data
-from mashap_lime.models import train_models
-from mashap_lime.explainers import lime_explainer, mashap_explainer
-from mashap_lime.comparison_metrics import timeit_context
+from prepare_data import fetch_data
+from models import train_models
+from explainers import lime_explainer, mashap_explainer
+from comparison_metrics import timeit_context
 
 
 def train_cache_models(datasets):
