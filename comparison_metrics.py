@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from time import time
 from contextlib import contextmanager
-from sklearn.metrics import roc_auc_score, auc
-from sklearn.metrics import auc
+from sklearn.metrics import roc_auc_score, auc, accuracy_score
 from xlwt import Workbook
 
 
@@ -114,31 +113,39 @@ def _get_prob(model, x_new, x_i, class_index, ordered_features, sign):
     y_new_pred_list = []
 
     # get prob. score for hidden values
-    if sign == 'absolute':
+    if sign == "absolute":
         y_new_pred = max(model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze())
     else:
-        y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[class_index]
+        y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
+            class_index
+        ]
     y_new_pred_list.append(y_new_pred)
 
     # get prob. score for the first 9 fractions
     for fraction_i in range(9):
         features = ordered_features.index[
-            fraction_i * fraction_size: (fraction_i * fraction_size + fraction_size)
+            fraction_i * fraction_size : (fraction_i * fraction_size + fraction_size)
         ]
         x_new.loc[features] = x_i[features]
-        if sign == 'absolute':
-            y_new_pred = max(model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze())
+        if sign == "absolute":
+            y_new_pred = max(
+                model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()
+            )
         else:
-            y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[class_index]
+            y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
+                class_index
+            ]
         y_new_pred_list.append(y_new_pred)
 
     # get prob. score for the last fraction
     features = ordered_features.index[-last_fraction_size:]
     x_new.loc[features] = x_i[features]
-    if sign == 'absolute':
+    if sign == "absolute":
         y_new_pred = max(model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze())
     else:
-        y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[class_index]
+        y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
+            class_index
+        ]
     y_new_pred_list.append(y_new_pred)
 
     return y_new_pred_list
@@ -151,77 +158,78 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
     instances with positive predictions, while if sign is negative test set contains instances with
     negative predictions (this is done so that explanations are more meaningful)
     """
-    y_50_list = []
-    if sign in ["positive", "absolute"]:
-        idx = range(0, 50)
-    elif sign == "negative":
-        idx = range(50, 100)
-    else:
-        raise ValueError()
+    y_100_list = []
 
-    for score, (x_idx, x_i) in zip(scores, x_test.iloc[idx].iterrows()):
+    for score, (x_idx, x_i) in zip(scores, x_test.iterrows()):
         s = pd.Series(score, index=x_test.columns)
 
         ordered_features, class_index = _sort_features(sign, s)
 
-        if metric == 'keep':
+        if metric == "keep":
             x_new = _hide_features(hide_mode, x_train, x_test)
-            y_50_list.append(_get_prob(model, x_new, x_i, class_index, ordered_features, sign))
-        elif metric == 'remove':
+            y_100_list.append(
+                _get_prob(model, x_new, x_i, class_index, ordered_features, sign)
+            )
+        elif metric == "remove":
             x_hide = _hide_features(hide_mode, x_train, x_test)
             x_new = x_i.copy()
-            y_50_list.append(_get_prob(model, x_new, x_hide, class_index, ordered_features, sign))
+            y_100_list.append(
+                _get_prob(model, x_new, x_hide, class_index, ordered_features, sign)
+            )
         else:
             raise ValueError()
 
     if sign == "absolute":
         return np.array(
-            [
-                roc_auc_score(y_test.iloc[idx], np.array(y_50_list)[:, i])
-                for i in range(11)
-            ]
+            [roc_auc_score(y_test, np.array(y_100_list)[:, i]) for i in range(11)]
         )
     else:
-        return np.mean(y_50_list, axis=0)
+        return np.mean(y_100_list, axis=0)
 
 
 def consistency_results(mashap_d, lime_d, datasets):
     """
     Calculates all consistency metrics for MASHAP and LIME scores
     """
-    d_get = lambda d, ds, model, metric, sign, hide_m: d[ds][model][metric][sign][hide_m]
+    d_get = lambda d, ds, model, metric, sign, hide_m: d[ds][model][metric][sign][
+        hide_m
+    ]
     x = np.linspace(0, 1, 11)
     # Overall results
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
 
     results_dict_keep = dict()
-    for sign in ['positive', 'negative', 'absolute']:
+    for sign in ["positive", "negative", "absolute"]:
         results_dict_i = dict()
-        for hide_mode in ['mask', 'resample', 'impute']:
+        for hide_mode in ["mask", "resample", "impute"]:
             auc_mashap = []
             auc_lime = []
             for ds in datasets:
                 for model in model_keys:
-                    y = d_get(mashap_d, ds, model, 'keep', sign, hide_mode)
+                    y = d_get(mashap_d, ds, model, "keep", sign, hide_mode)
                     auc_mashap.append(auc(x, y))
-                    y = d_get(lime_d, ds, model, 'keep', sign, hide_mode)
+                    y = d_get(lime_d, ds, model, "keep", sign, hide_mode)
                     auc_lime.append(auc(x, y))
-            results_dict_i.setdefault(hide_mode, [x > y for x, y in zip(auc_mashap, auc_lime)])
+            results_dict_i.setdefault(
+                hide_mode, [x > y for x, y in zip(auc_mashap, auc_lime)]
+            )
         results_dict_keep.setdefault(sign, results_dict_i)
 
     results_dict_remove = dict()
-    for sign in ['positive', 'negative', 'absolute']:
+    for sign in ["positive", "negative", "absolute"]:
         results_dict_i = dict()
-        for hide_mode in ['mask', 'resample', 'impute']:
+        for hide_mode in ["mask", "resample", "impute"]:
             auc_mashap = []
             auc_lime = []
             for ds in datasets:
                 for model in model_keys:
-                    y = d_get(mashap_d, ds, model, 'remove', sign, hide_mode)
+                    y = d_get(mashap_d, ds, model, "remove", sign, hide_mode)
                     auc_mashap.append(auc(x, y))
-                    y = d_get(lime_d, ds, model, 'remove', sign, hide_mode)
+                    y = d_get(lime_d, ds, model, "remove", sign, hide_mode)
                     auc_lime.append(auc(x, y))
-            results_dict_i.setdefault(hide_mode, [x < y for x, y in zip(auc_mashap, auc_lime)])
+            results_dict_i.setdefault(
+                hide_mode, [x < y for x, y in zip(auc_mashap, auc_lime)]
+            )
         results_dict_remove.setdefault(sign, results_dict_i)
 
     return results_dict_keep, results_dict_remove
@@ -229,30 +237,34 @@ def consistency_results(mashap_d, lime_d, datasets):
 
 def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
     wb = Workbook()
-    sheet1 = wb.add_sheet('Sheet 1')
-    sheet2 = wb.add_sheet('Sheet 2')
+    sheet1 = wb.add_sheet("Sheet 1")
+    sheet2 = wb.add_sheet("Sheet 2")
 
     for sheet in [sheet1, sheet2]:
-        sheet.write(0, 1, 'dataset')
-        sheet.write(0, 2, 'model')
-        sheet.write(0, 3, 'metric')
-        sheet.write(0, 4, 'mashap')
-        sheet.write(0, 5, 'lime')
+        sheet.write(0, 1, "dataset")
+        sheet.write(0, 2, "model")
+        sheet.write(0, 3, "metric")
+        sheet.write(0, 4, "mashap")
+        sheet.write(0, 5, "lime")
 
-    for metric, sheet in zip(['keep', 'remove'], [sheet1, sheet2]):
+    for metric, sheet in zip(["keep", "remove"], [sheet1, sheet2]):
         row = 0
         x = np.linspace(0, 1, 11)
         for ds in datasets:
             for model in ["knn", "dt", "rf", "gbc", "mlp"]:
-                for sign in ['positive', 'negative', 'absolute']:
-                    for hide_m in ['mask', 'resample', 'impute']:
+                for sign in ["positive", "negative", "absolute"]:
+                    for hide_m in ["mask", "resample", "impute"]:
                         row += 1
-                        auc_mashap = auc(x, mashap_consistency_dict[ds][model][metric][sign][hide_m])
-                        auc_lime = auc(x, lime_consistency_dict[ds][model][metric][sign][hide_m])
+                        auc_mashap = auc(
+                            x, mashap_consistency_dict[ds][model][metric][sign][hide_m]
+                        )
+                        auc_lime = auc(
+                            x, lime_consistency_dict[ds][model][metric][sign][hide_m]
+                        )
                         sheet.write(row, 1, ds)
                         sheet.write(row, 2, model)
                         sheet.write(row, 3, " ".join([metric, sign, hide_m]))
                         sheet.write(row, 4, auc_mashap)
                         sheet.write(row, 5, auc_lime)
 
-    wb.save('comparison.xls')
+    wb.save("comparison.xls")

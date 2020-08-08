@@ -7,41 +7,45 @@ from cache import (
     make_test_set_idx,
 )
 from prepare_data import fetch_data
-from comparison_metrics import consistency_metric, runtime_calculations, \
-    consistency_results, write_excel
+from comparison_metrics import (
+    consistency_metric,
+    runtime_calculations,
+    consistency_results,
+    write_excel,
+)
 from sklearn.model_selection import train_test_split
 
 
 ########################################################################
 # define datasets
 ########################################################################
-os.makedirs('cache', exist_ok=True)
+os.makedirs("cache", exist_ok=True)
 openml_datasets_ids = [
     # ("adult", 2, "classification"),
     # ("default-of-credit-card-clients", "active", "classification"),
     # ("musk", "active", "classification"),
     # ("hill-valley", 1, "classification"),
-    # ("ozone-level-8hr", "active", "classification"),
-    # ("pc1", "active", "classification"),
-    # ("pc2", "active", "classification"),
-    # ("pc3", "active", "classification"),
-    # ("pc4", "active", "classification"),
-    # ("spambase", "active", "classification"),
-    # ("climate-model-simulation-crashes", 1, "classification"),
-    # ("kr-vs-kp", "active", "classification"),
-    # ("cylinder-bands", "active", "classification"),
-    ("ionosphere", "active", "classification"),
-    ("kc3", "active", "classification"),
-    ("qsar-biodeg", "active", "classification"),
-    ("SPECTF", 1, "classification"),
-    ("credit-g", "active", "classification"),
-    ("kc1", "active", "classification"),
-    ("mushroom", "active", "classification"),
-    ("ringnorm", "active", "classification"),
-    ("twonorm", "active", "classification"),
-    ("bank-marketing", 1, "classification"),
-    ("vote", 1, "classification"),
-    ("credit-approval", "active", "classification")
+    ("ozone-level-8hr", "active", "classification"),
+    ("pc1", "active", "classification"),
+    ("pc2", "active", "classification"),
+    ("pc3", "active", "classification"),
+    ("pc4", "active", "classification"),
+    ("spambase", "active", "classification"),
+    ("climate-model-simulation-crashes", 1, "classification"),
+    ("kr-vs-kp", "active", "classification"),
+    ("cylinder-bands", "active", "classification"),
+    # ("ionosphere", "active", "classification"),
+    # ("kc3", "active", "classification"),
+    # ("qsar-biodeg", "active", "classification"),
+    # ("SPECTF", 1, "classification"),
+    # ("credit-g", "active", "classification"),
+    # ("kc1", "active", "classification"),
+    # ("mushroom", "active", "classification"),
+    # ("ringnorm", "active", "classification"),
+    # ("twonorm", "active", "classification"),
+    # ("bank-marketing", 1, "classification"),
+    # ("vote", 1, "classification"),
+    # ("credit-approval", "active", "classification")
 ]
 ########################################################################
 # train models on every dataset (and cache them)
@@ -83,6 +87,7 @@ def get_consistency_metrics(datasets, algorithm):
     consistency_scores_dict = dict()
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
     for dataset, version, mode in datasets:
+        print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
         x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
         model_dict = dict()
@@ -107,7 +112,7 @@ def get_consistency_metrics(datasets, algorithm):
                             scores,
                             sign,
                             hide_mode,
-                            model
+                            model,
                         )
 
                         hide_mode_dict.setdefault(hide_mode, mean_score)
@@ -119,14 +124,18 @@ def get_consistency_metrics(datasets, algorithm):
 
 
 try:
-    mashap_consistency_dict = joblib.load('cache/mashap_consistency.dict')
-    lime_consistency_dict = joblib.load('cache/lime_consistency.dict')
+    mashap_consistency_dict = joblib.load("cache/mashap_consistency.dict")
+    lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
 except FileNotFoundError:
     print("========== CALCULATING CONSISTENCY SCORES ==========")
-    mashap_consistency_dict = get_consistency_metrics(openml_datasets_ids, algorithm="mashap")
-    lime_consistency_dict = get_consistency_metrics(openml_datasets_ids, algorithm="lime")
-    joblib.dump(mashap_consistency_dict, 'cache/mashap_consistency.dict')
-    joblib.dump(lime_consistency_dict, 'cache/lime_consistency.dict')
+    mashap_consistency_dict = get_consistency_metrics(
+        openml_datasets_ids, algorithm="mashap"
+    )
+    lime_consistency_dict = get_consistency_metrics(
+        openml_datasets_ids, algorithm="lime"
+    )
+    joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
+    joblib.dump(lime_consistency_dict, "cache/lime_consistency.dict")
 
 
 ########################################################################

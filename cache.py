@@ -94,9 +94,7 @@ def calculate_cache_scores(datasets, trained_models_dict, algorithm):
                 with timeit_context(
                     f"[{model}] {algorithm} runtime:", time_extractor_from_ctx_mngr
                 ):
-                    scores = lime_explainer(
-                        x_train, predict_fn, x_test_mix, mode=mode
-                    )
+                    scores = lime_explainer(x_train, predict_fn, x_test_mix, mode=mode)
             elif algorithm == "mashap":
                 with timeit_context(
                     f"[{model}] {algorithm} runtime:", time_extractor_from_ctx_mngr
