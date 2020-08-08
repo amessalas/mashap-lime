@@ -23,6 +23,8 @@ def runtime_calculations(mashap_d, lime_d, datasets):
     for ds in datasets:
         t_l = np.mean(list(lime_d.get(ds).values()))
         t_m = np.mean(list(mashap_d.get(ds).values()))
+        if t_m == 0:
+            t_m = 1
         lime_time_mean.append(t_l)
         mashap_time_mean.append(t_m)
         print(f"[{ds}] MASHAP was {t_l/t_m: .2f} times faster")
@@ -241,11 +243,11 @@ def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
     sheet2 = wb.add_sheet("Sheet 2")
 
     for sheet in [sheet1, sheet2]:
-        sheet.write(0, 1, "dataset")
-        sheet.write(0, 2, "model")
-        sheet.write(0, 3, "metric")
-        sheet.write(0, 4, "mashap")
-        sheet.write(0, 5, "lime")
+        sheet.write(0, 0, "dataset")
+        sheet.write(0, 1, "model")
+        sheet.write(0, 2, "metric")
+        sheet.write(0, 3, "mashap")
+        sheet.write(0, 4, "lime")
 
     for metric, sheet in zip(["keep", "remove"], [sheet1, sheet2]):
         row = 0
@@ -261,10 +263,10 @@ def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
                         auc_lime = auc(
                             x, lime_consistency_dict[ds][model][metric][sign][hide_m]
                         )
-                        sheet.write(row, 1, ds)
-                        sheet.write(row, 2, model)
-                        sheet.write(row, 3, " ".join([metric, sign, hide_m]))
-                        sheet.write(row, 4, auc_mashap)
-                        sheet.write(row, 5, auc_lime)
+                        sheet.write(row, 0, ds)
+                        sheet.write(row, 1, model)
+                        sheet.write(row, 2, " ".join([metric, sign, hide_m]))
+                        sheet.write(row, 3, auc_mashap)
+                        sheet.write(row, 4, auc_lime)
 
     wb.save("comparison.xls")
