@@ -21,31 +21,31 @@ from sklearn.model_selection import train_test_split
 ########################################################################
 os.makedirs("cache", exist_ok=True)
 openml_datasets_ids = [
-    # ("adult", 2, "classification"),
-    # ("default-of-credit-card-clients", "active", "classification"),
-    # ("musk", "active", "classification"),
-    # ("hill-valley", 1, "classification"),
-    ("ozone-level-8hr", "active", "classification"),
-    ("pc1", "active", "classification"),
-    ("pc2", "active", "classification"),
-    ("pc3", "active", "classification"),
-    ("pc4", "active", "classification"),
-    ("spambase", "active", "classification"),
-    ("climate-model-simulation-crashes", 1, "classification"),
-    ("kr-vs-kp", "active", "classification"),
-    ("cylinder-bands", "active", "classification"),
-    # ("ionosphere", "active", "classification"),
-    # ("kc3", "active", "classification"),
-    # ("qsar-biodeg", "active", "classification"),
-    # ("SPECTF", 1, "classification"),
-    # ("credit-g", "active", "classification"),
-    # ("kc1", "active", "classification"),
-    # ("mushroom", "active", "classification"),
-    # ("ringnorm", "active", "classification"),
-    # ("twonorm", "active", "classification"),
-    # ("bank-marketing", 1, "classification"),
-    # ("vote", 1, "classification"),
-    # ("credit-approval", "active", "classification")
+    ("adult", 2, "classification"),
+    ("default-of-credit-card-clients", "active", "classification"),
+    ("musk", "active", "classification"),
+    ("hill-valley", 1, "classification"),
+    # ("ozone-level-8hr", "active", "classification"),
+    # ("pc1", "active", "classification"),
+    # ("pc2", "active", "classification"),
+    # ("pc3", "active", "classification"),
+    # ("pc4", "active", "classification"),
+    # ("spambase", "active", "classification"),
+    # ("climate-model-simulation-crashes", 1, "classification"),
+    # ("kr-vs-kp", "active", "classification"),
+    # ("cylinder-bands", "active", "classification"),
+    ("ionosphere", "active", "classification"),
+    ("kc3", "active", "classification"),
+    ("qsar-biodeg", "active", "classification"),
+    ("SPECTF", 1, "classification"),
+    ("credit-g", "active", "classification"),
+    ("kc1", "active", "classification"),
+    ("mushroom", "active", "classification"),
+    ("ringnorm", "active", "classification"),
+    ("twonorm", "active", "classification"),
+    ("bank-marketing", 1, "classification"),
+    ("vote", 1, "classification"),
+    ("credit-approval", "active", "classification"),
 ]
 ########################################################################
 # train models on every dataset (and cache them)
@@ -90,17 +90,17 @@ def get_consistency_metrics(datasets, algorithm):
         print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
         x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-        model_dict = dict()
 
+        model_dict = dict()
         for model_key in tqdm(model_keys):
             test_idx = idx_dict.get(dataset).get(model_key)
             x_test = x.loc[test_idx]
             y_test = y.loc[test_idx]
             scores = eval(algorithm + "_scores_dict").get(dataset).get(model_key)
             model = trained_models_dict.get(dataset).get(model_key)
-            sign_dict = dict()
             metric_dict = dict()
             for metric in ["keep", "remove"]:
+                sign_dict = dict()
                 for sign in ["positive", "negative", "absolute"]:
                     hide_mode_dict = dict()
                     for hide_mode in ["mask", "resample", "impute"]:

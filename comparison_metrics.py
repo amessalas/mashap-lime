@@ -4,7 +4,7 @@ from time import time
 from contextlib import contextmanager
 from sklearn.metrics import roc_auc_score, auc, accuracy_score
 from xlwt import Workbook
-
+from math import ceil
 
 ########################################################################
 # 1. Runtime
@@ -14,8 +14,8 @@ def timeit_context(name, time_trojan):
     start_time = time()
     yield
     elapsed_time = time() - start_time
-    time_trojan[0] = int(elapsed_time)
-    print("{} {} seconds".format(name, int(elapsed_time)))
+    time_trojan[0] = ceil(elapsed_time)
+    print("{} {} seconds".format(name, ceil(elapsed_time)))
 
 
 def runtime_calculations(mashap_d, lime_d, datasets):
@@ -62,18 +62,18 @@ def _sort_features(sign, s):
     orders features based on `sign`. The positive and absolute features are sorted descendingly
     while the negative features are sorted ascendingly
     """
-    class_index = None
+    class_idx = None
     if sign == "positive":
         ordered_features = s[s > 0].sort_values(ascending=False)
-        class_index = 1
+        class_idx = 1
     elif sign == "negative":
         ordered_features = s[s < 0].sort_values(ascending=True)
-        class_index = 0
+        class_idx = 0
     elif sign == "absolute":
         ordered_features = abs(s).sort_values(ascending=False)
     else:
         raise ValueError("'sign' valid values: 'positive', 'negative,'absolute'")
-    return ordered_features, class_index
+    return ordered_features, class_idx
 
 
 def _hide_features(hide_mode, x_train, x_test):
@@ -101,7 +101,7 @@ def _hide_features(hide_mode, x_train, x_test):
     return x_new
 
 
-def _get_prob(model, x_new, x_i, class_index, ordered_features, sign):
+def _get_prob(model, x_new, x_hide, class_idx, ordered_features, sign):
     """
     Divides data in 11 fractions. For each fraction, it returns the probability score of the model
     on the fraction. The first fraction contains all the hidden features, the second fraction
@@ -119,7 +119,7 @@ def _get_prob(model, x_new, x_i, class_index, ordered_features, sign):
         y_new_pred = max(model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze())
     else:
         y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
-            class_index
+            class_idx
         ]
     y_new_pred_list.append(y_new_pred)
 
@@ -128,25 +128,25 @@ def _get_prob(model, x_new, x_i, class_index, ordered_features, sign):
         features = ordered_features.index[
             fraction_i * fraction_size : (fraction_i * fraction_size + fraction_size)
         ]
-        x_new.loc[features] = x_i[features]
+        x_new.loc[features] = x_hide[features]
         if sign == "absolute":
             y_new_pred = max(
                 model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()
             )
         else:
             y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
-                class_index
+                class_idx
             ]
         y_new_pred_list.append(y_new_pred)
 
     # get prob. score for the last fraction
     features = ordered_features.index[-last_fraction_size:]
-    x_new.loc[features] = x_i[features]
+    x_new.loc[features] = x_hide[features]
     if sign == "absolute":
         y_new_pred = max(model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze())
     else:
         y_new_pred = model.predict_proba(np.array(x_new).reshape(1, -1)).squeeze()[
-            class_index
+            class_idx
         ]
     y_new_pred_list.append(y_new_pred)
 
@@ -165,18 +165,19 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
     for score, (x_idx, x_i) in zip(scores, x_test.iterrows()):
         s = pd.Series(score, index=x_test.columns)
 
-        ordered_features, class_index = _sort_features(sign, s)
+        ordered_features, class_idx = _sort_features(sign, s)
 
         if metric == "keep":
             x_new = _hide_features(hide_mode, x_train, x_test)
+            x_hide = x_i.copy()
             y_100_list.append(
-                _get_prob(model, x_new, x_i, class_index, ordered_features, sign)
+                _get_prob(model, x_new, x_hide, class_idx, ordered_features, sign)
             )
         elif metric == "remove":
-            x_hide = _hide_features(hide_mode, x_train, x_test)
             x_new = x_i.copy()
+            x_hide = _hide_features(hide_mode, x_train, x_test)
             y_100_list.append(
-                _get_prob(model, x_new, x_hide, class_index, ordered_features, sign)
+                _get_prob(model, x_new, x_hide, class_idx, ordered_features, sign)
             )
         else:
             raise ValueError()
