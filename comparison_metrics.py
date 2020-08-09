@@ -190,13 +190,44 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
         return np.mean(y_100_list, axis=0)
 
 
+def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
+    wb = Workbook()
+    sheet1 = wb.add_sheet("Sheet 1")
+    sheet2 = wb.add_sheet("Sheet 2")
+
+    for sheet in [sheet1, sheet2]:
+        sheet.write(0, 0, "dataset")
+        sheet.write(0, 1, "model")
+        sheet.write(0, 2, "metric")
+        sheet.write(0, 3, "mashap")
+        sheet.write(0, 4, "lime")
+
+    for metric, sheet in zip(["keep", "remove"], [sheet1, sheet2]):
+        row = 0
+        x = np.linspace(0, 1, 11)
+        for ds in datasets:
+            for model in ["knn", "dt", "rf", "gbc", "mlp"]:
+                for sign in ["positive", "negative", "absolute"]:
+                    for hide_m in ["mask", "resample", "impute"]:
+                        row += 1
+                        auc_mashap = auc(
+                            x, mashap_consistency_dict[ds][model][metric][sign][hide_m]
+                        )
+                        auc_lime = auc(
+                            x, lime_consistency_dict[ds][model][metric][sign][hide_m]
+                        )
+                        sheet.write(row, 0, ds)
+                        sheet.write(row, 1, model)
+                        sheet.write(row, 2, " ".join([metric, sign, hide_m]))
+                        sheet.write(row, 3, auc_mashap)
+                        sheet.write(row, 4, auc_lime)
+
+    wb.save("comparison.xls")
+
+
+"""
 def consistency_results(mashap_d, lime_d, datasets):
-    """
-    Calculates all consistency metrics for MASHAP and LIME scores
-    """
-    d_get = lambda d, ds, model, metric, sign, hide_m: d[ds][model][metric][sign][
-        hide_m
-    ]
+    d_get = lambda dct, a, b, c, d, e: dct[a][b][c][d][e]
     x = np.linspace(0, 1, 11)
     # Overall results
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
@@ -235,39 +266,5 @@ def consistency_results(mashap_d, lime_d, datasets):
             )
         results_dict_remove.setdefault(sign, results_dict_i)
 
-    return results_dict_keep, results_dict_remove
-
-
-def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
-    wb = Workbook()
-    sheet1 = wb.add_sheet("Sheet 1")
-    sheet2 = wb.add_sheet("Sheet 2")
-
-    for sheet in [sheet1, sheet2]:
-        sheet.write(0, 0, "dataset")
-        sheet.write(0, 1, "model")
-        sheet.write(0, 2, "metric")
-        sheet.write(0, 3, "mashap")
-        sheet.write(0, 4, "lime")
-
-    for metric, sheet in zip(["keep", "remove"], [sheet1, sheet2]):
-        row = 0
-        x = np.linspace(0, 1, 11)
-        for ds in datasets:
-            for model in ["knn", "dt", "rf", "gbc", "mlp"]:
-                for sign in ["positive", "negative", "absolute"]:
-                    for hide_m in ["mask", "resample", "impute"]:
-                        row += 1
-                        auc_mashap = auc(
-                            x, mashap_consistency_dict[ds][model][metric][sign][hide_m]
-                        )
-                        auc_lime = auc(
-                            x, lime_consistency_dict[ds][model][metric][sign][hide_m]
-                        )
-                        sheet.write(row, 0, ds)
-                        sheet.write(row, 1, model)
-                        sheet.write(row, 2, " ".join([metric, sign, hide_m]))
-                        sheet.write(row, 3, auc_mashap)
-                        sheet.write(row, 4, auc_lime)
-
-    wb.save("comparison.xls")
+   return results_dict_keep, results_dict_remove
+"""
