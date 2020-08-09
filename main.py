@@ -130,10 +130,11 @@ except FileNotFoundError:
     mashap_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="mashap"
     )
+    joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
+
     lime_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="lime"
     )
-    joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
     joblib.dump(lime_consistency_dict, "cache/lime_consistency.dict")
 
 
