@@ -10,7 +10,6 @@ from prepare_data import fetch_data
 from comparison_metrics import (
     consistency_metric,
     runtime_calculations,
-    consistency_results,
     write_excel,
 )
 from sklearn.model_selection import train_test_split
