@@ -24,15 +24,14 @@ openml_datasets_ids = [
     ("default-of-credit-card-clients", "active", "classification"),
     ("musk", "active", "classification"),
     ("hill-valley", 1, "classification"),
-    # ("ozone-level-8hr", "active", "classification"),
-    # ("pc1", "active", "classification"),
-    # ("pc2", "active", "classification"),
-    # ("pc3", "active", "classification"),
-    # ("pc4", "active", "classification"),
-    # ("spambase", "active", "classification"),
-    # ("climate-model-simulation-crashes", 1, "classification"),
-    # ("kr-vs-kp", "active", "classification"),
-    # ("cylinder-bands", "active", "classification"),
+    ("ozone-level-8hr", "active", "classification"),
+    ("pc1", "active", "classification"),
+    ("compas-two-years", 3, "classification"),
+    ("elevators", 2, "classification"),
+    ("spambase", "active", "classification"),
+    ("climate-model-simulation-crashes", 1, "classification"),
+    ("kr-vs-kp", "active", "classification"),
+    ("cylinder-bands", "active", "classification"),
     ("ionosphere", "active", "classification"),
     ("kc3", "active", "classification"),
     ("qsar-biodeg", "active", "classification"),
@@ -124,14 +123,17 @@ def get_consistency_metrics(datasets, algorithm):
 
 try:
     mashap_consistency_dict = joblib.load("cache/mashap_consistency.dict")
-    lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
 except FileNotFoundError:
-    print("========== CALCULATING CONSISTENCY SCORES ==========")
+    print("========== CALCULATING MASHAP CONSISTENCY SCORES ==========")
     mashap_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="mashap"
     )
     joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
 
+try:
+    lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
+except FileNotFoundError:
+    print("========== CALCULATING LIME CONSISTENCY SCORES ==========")
     lime_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="lime"
     )
@@ -145,11 +147,3 @@ datasets = [ds for ds, v, t in openml_datasets_ids]
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
 write_excel(mashap_consistency_dict, lime_consistency_dict, datasets)
-
-
-# results_dict_keep, results_dict_remove = consistency_results(mashap_consistency_dict,
-#                                                              lime_consistency_dict,
-#                                                              datasets)
-# results = dict()
-# results.setdefault('keep', results_dict_keep)
-# results.setdefault('remove', results_dict_remove)

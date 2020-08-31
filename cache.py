@@ -100,7 +100,8 @@ def calculate_cache_scores(datasets, trained_models_dict, algorithm):
                     f"[{model}] {algorithm} runtime:", time_extractor_from_ctx_mngr
                 ):
                     py_train = model.predict(x_train)
-                    scores = mashap_explainer(x_train, py_train, x_test_mix)
+                    py_test = model.predict(x_test_mix)
+                    scores = mashap_explainer(x_train, py_train, x_test_mix, py_test)
             else:
                 raise ValueError()
             scores_dict_i.setdefault(model_key, scores)

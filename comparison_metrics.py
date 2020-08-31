@@ -226,45 +226,31 @@ def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
 
 
 """
-def consistency_results(mashap_d, lime_d, datasets):
-    d_get = lambda dct, a, b, c, d, e: dct[a][b][c][d][e]
-    x = np.linspace(0, 1, 11)
-    # Overall results
-    model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
-
-    results_dict_keep = dict()
-    for sign in ["positive", "negative", "absolute"]:
-        results_dict_i = dict()
-        for hide_mode in ["mask", "resample", "impute"]:
-            auc_mashap = []
-            auc_lime = []
-            for ds in datasets:
-                for model in model_keys:
-                    y = d_get(mashap_d, ds, model, "keep", sign, hide_mode)
-                    auc_mashap.append(auc(x, y))
-                    y = d_get(lime_d, ds, model, "keep", sign, hide_mode)
-                    auc_lime.append(auc(x, y))
-            results_dict_i.setdefault(
-                hide_mode, [x > y for x, y in zip(auc_mashap, auc_lime)]
+def latex_table(datasets, lime_runtime_dict, mashap_runtime_dict):
+    d = dict()
+    ratio_l = dict()
+    categorical = dict()
+    for dataset, version, mode in datasets:
+        x, y = fetch_data(dataset, version)
+        t_l = np.mean(list(lime_runtime_dict[dataset].values()))
+        categorical_features = [
+            i for i, col in enumerate(x.columns) if np.unique(x[col]).size < 10
+        ]
+        t_m = np.mean(list(mashap_runtime_dict[dataset].values()))
+        if t_m == 0:
+            t_m = 1
+        if version != "active":
+            d.setdefault(f"{dataset} (v.{version})", x.shape)
+            ratio_l.setdefault(f"{dataset} (v.{version})", t_l / t_m)
+            categorical.setdefault(
+                f"{dataset} (v.{version})", len(categorical_features)
             )
-        results_dict_keep.setdefault(sign, results_dict_i)
+        else:
+            d.setdefault(dataset, x.shape)
+            ratio_l.setdefault(dataset, t_l / t_m)
+            categorical.setdefault(dataset, len(categorical_features))
 
-    results_dict_remove = dict()
-    for sign in ["positive", "negative", "absolute"]:
-        results_dict_i = dict()
-        for hide_mode in ["mask", "resample", "impute"]:
-            auc_mashap = []
-            auc_lime = []
-            for ds in datasets:
-                for model in model_keys:
-                    y = d_get(mashap_d, ds, model, "remove", sign, hide_mode)
-                    auc_mashap.append(auc(x, y))
-                    y = d_get(lime_d, ds, model, "remove", sign, hide_mode)
-                    auc_lime.append(auc(x, y))
-            results_dict_i.setdefault(
-                hide_mode, [x < y for x, y in zip(auc_mashap, auc_lime)]
-            )
-        results_dict_remove.setdefault(sign, results_dict_i)
-
-   return results_dict_keep, results_dict_remove
+    sorted_d = sorted(d.items(), key=lambda kv: kv[1][1])
+    for name, shape in sorted_d:
+        print(f"{name} &  {shape} & {ratio_l[name]:.1f} & {categorical[name]} \\\\")
 """
