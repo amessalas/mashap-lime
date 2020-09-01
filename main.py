@@ -55,7 +55,7 @@ except FileNotFoundError:
     trained_models_dict = train_cache_models(openml_datasets_ids)
 
 ########################################################################
-# measure MASHAP and LIME scores (and cache them)import numpy as np
+# measure MASHAP and LIME scores (and cache them)
 ########################################################################
 try:
     idx_dict = joblib.load(f"cache/idx_dict.dict")

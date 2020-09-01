@@ -1,10 +1,10 @@
 import numpy as np
+import shap
 from lime.lime_tabular import LimeTabularExplainer
-from shap import TreeExplainer
-from shap.explainers.explainer import Explainer
 from xgboost import DMatrix
 from xgboost import train as xgb_train
 from sklearn.utils.multiclass import type_of_target
+from sklearn.utils import resample
 from tqdm import tqdm
 
 
@@ -38,7 +38,7 @@ def mashap_explainer(x_train, py_train, x_test, py_test):
     return np.array(shap_values)
 
 
-class MashapExplainer(Explainer):
+class MashapExplainer:
 
     objective_dict = {
         "continuous": "reg:squarederror",
@@ -49,29 +49,19 @@ class MashapExplainer(Explainer):
     def __init__(self, x, py):
         self.target_type = type_of_target(py)
         self.surrogate_model = self._create_surrogate(x, py)
-        self.explainer_ = TreeExplainer(self.surrogate_model)
+        self.explainer_ = shap.TreeExplainer(model=self.surrogate_model,
+                                             data=resample(x, n_samples=100, random_state=0),
+                                             feature_perturbation='interventional')
 
     def _create_surrogate(self, x, py):
         params_1 = {
-            "max_depth": 8,
+            "max_depth": 7,
             "objective": MashapExplainer.objective_dict.get(self.target_type),
             "eval_metric": "logloss",
         }
-        params_2 = {"num_boost_round": 200}
+        params_2 = {"num_boost_round": 150}
         dtrain = DMatrix(x, label=py)
         booster = xgb_train(params_1, dtrain, **params_2)
-        return self.monkey_patch(booster)
-
-    @staticmethod
-    def monkey_patch(booster):
-        # monkey patch to fix xgboost error with shap 0.35.0
-        # (https://github.com/slundberg/shap/issues/1215#issuecomment-641102855)
-        model_byte_array = booster.save_raw()[4:]
-
-        def f(self=None):
-            return model_byte_array
-
-        booster.save_raw = f
         return booster
 
     def partial_fit(self, x_partial, y_partial):
@@ -80,7 +70,7 @@ class MashapExplainer(Explainer):
             "objective": MashapExplainer.objective_dict.get(self.target_type),
             "eval_metric": "logloss",
         }
-        params_2 = {"num_boost_round": 100}
+        params_2 = {"num_boost_round": 200}
         dtrain = DMatrix(x_partial, label=y_partial)
 
         booster = xgb_train(
@@ -88,7 +78,7 @@ class MashapExplainer(Explainer):
         )
 
         self.surrogate_model = booster
-        self.explainer_ = TreeExplainer(self.surrogate_model)
+        self.explainer_ = shap.TreeExplainer(self.surrogate_model)
 
     def shap_values(self, X, y=None, tree_limit=None, approximate=False):
         """
