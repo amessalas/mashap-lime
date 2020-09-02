@@ -223,34 +223,3 @@ def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets):
                         sheet.write(row, 4, auc_lime)
 
     wb.save("comparison.xls")
-
-
-"""
-def latex_table(datasets, lime_runtime_dict, mashap_runtime_dict):
-    d = dict()
-    ratio_l = dict()
-    categorical = dict()
-    for dataset, version, mode in datasets:
-        x, y = fetch_data(dataset, version)
-        t_l = np.mean(list(lime_runtime_dict[dataset].values()))
-        categorical_features = [
-            i for i, col in enumerate(x.columns) if np.unique(x[col]).size < 10
-        ]
-        t_m = np.mean(list(mashap_runtime_dict[dataset].values()))
-        if t_m == 0:
-            t_m = 1
-        if version != "active":
-            d.setdefault(f"{dataset} (v.{version})", x.shape)
-            ratio_l.setdefault(f"{dataset} (v.{version})", t_l / t_m)
-            categorical.setdefault(
-                f"{dataset} (v.{version})", len(categorical_features)
-            )
-        else:
-            d.setdefault(dataset, x.shape)
-            ratio_l.setdefault(dataset, t_l / t_m)
-            categorical.setdefault(dataset, len(categorical_features))
-
-    sorted_d = sorted(d.items(), key=lambda kv: kv[1][1])
-    for name, shape in sorted_d:
-        print(f"{name} &  {shape} & {ratio_l[name]:.1f} & {categorical[name]} \\\\")
-"""
