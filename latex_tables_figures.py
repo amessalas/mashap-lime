@@ -1,3 +1,7 @@
+"""
+Functions to replicate the tables and figures of the paper.
+Figures' file type is Encapsulated PostScript (eps) and tables follow IEEE guidelines
+"""
 import numpy as np
 import joblib
 import pandas as pd
