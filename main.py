@@ -1,18 +1,15 @@
 import joblib
 import os
-from tqdm import tqdm
 from cache import (
     train_cache_models,
     calculate_cache_scores,
     make_test_set_idx,
 )
-from prepare_data import fetch_data
 from comparison_metrics import (
-    consistency_metric,
+    get_consistency_metrics,
     runtime_calculations,
     write_excel,
 )
-from sklearn.model_selection import train_test_split
 
 
 ########################################################################
@@ -80,51 +77,14 @@ except FileNotFoundError:
         openml_datasets_ids, trained_models_dict, "lime"
     )
 
-
-def get_consistency_metrics(datasets, algorithm):
-    consistency_scores_dict = dict()
-    model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
-    for dataset, version, mode in datasets:
-        print(f"-------------- {dataset}, {algorithm} --------------")
-        x, y = fetch_data(dataset, version)
-        x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-
-        model_dict = dict()
-        for model_key in tqdm(model_keys):
-            test_idx = idx_dict.get(dataset).get(model_key)
-            x_test = x.loc[test_idx]
-            y_test = y.loc[test_idx]
-            scores = eval(algorithm + "_scores_dict").get(dataset).get(model_key)
-            model = trained_models_dict.get(dataset).get(model_key)
-            metric_dict = dict()
-            for metric in ["keep", "remove"]:
-                sign_dict = dict()
-                for sign in ["positive", "negative", "absolute"]:
-                    hide_mode_dict = dict()
-                    for hide_mode in ["mask", "resample", "impute"]:
-                        mean_score = consistency_metric(
-                            x_train,
-                            x_test.copy(),
-                            y_test.copy(),
-                            metric,
-                            scores,
-                            sign,
-                            hide_mode,
-                            model,
-                        )
-
-                        hide_mode_dict.setdefault(hide_mode, mean_score)
-                    sign_dict.setdefault(sign, hide_mode_dict)
-                metric_dict.setdefault(metric, sign_dict)
-            model_dict.setdefault(model_key, metric_dict)
-        consistency_scores_dict.setdefault(dataset, model_dict)
-    return consistency_scores_dict
-
+########################################################################
+# measure MASHAP and LIME consistency metrics (and cache them)
+########################################################################
 
 try:
     mashap_consistency_dict = joblib.load("cache/mashap_consistency.dict")
 except FileNotFoundError:
-    print("========== CALCULATING MASHAP CONSISTENCY SCORES ==========")
+    print("========== CALCULATING MASHAP CONSISTENCY METRICS ==========")
     mashap_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="mashap"
     )
@@ -133,7 +93,7 @@ except FileNotFoundError:
 try:
     lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
 except FileNotFoundError:
-    print("========== CALCULATING LIME CONSISTENCY SCORES ==========")
+    print("========== CALCULATING LIME CONSISTENCY METRICS ==========")
     lime_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="lime"
     )
@@ -146,4 +106,4 @@ except FileNotFoundError:
 datasets = [ds for ds, v, t in openml_datasets_ids]
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
-write_excel(mashap_consistency_dict, lime_consistency_dict, datasets)
+write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime')
