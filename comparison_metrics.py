@@ -283,8 +283,8 @@ def t_test(excel):
         m = pd.read_excel(excel, sheet_name=f'Sheet {i+1}')
         m['metric'] = m['metric'].apply(lambda s: ' '.join(s.split(' ')[:2]))
         for sign in ['positive', 'negative', 'absolute']:
-            mashap = m[m['metric'] == f'keep {sign}']['mashap']
-            lime = m[m['metric'] == f'keep {sign}']['lime']
+            mashap = m[m['metric'] == f'{metric} {sign}']['mashap']
+            lime = m[m['metric'] == f'{metric} {sign}']['lime']
             diff = mashap.mean() - lime.mean()
             if diff < 0:
                 if metric == 'remove':
