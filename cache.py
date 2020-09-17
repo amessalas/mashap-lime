@@ -110,10 +110,7 @@ def calculate_cache_scores(datasets, trained_models_dict, algorithm):
 
         scores_dict.setdefault(dataset, scores_dict_i)
         time_dict.setdefault(dataset, time_dict_i)
-        joblib.dump(scores_dict, f"cache/{algorithm}_scores.dict")
-        joblib.dump(time_dict, f"cache/{algorithm}_runtime.dict")
-    joblib.dump(scores_dict, f"cache/{algorithm}_scores.dict")
-    joblib.dump(time_dict, f"cache/{algorithm}_runtime.dict")
+
     return (
         scores_dict,
         time_dict,

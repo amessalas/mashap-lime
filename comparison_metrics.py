@@ -197,26 +197,26 @@ def get_consistency_metrics(datasets, algorithm):
     consistency_scores_dict = dict()
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
     for dataset, version, mode in datasets:
-        executor = ThreadPoolExecutor(max_workers=5)
+        executor = ThreadPoolExecutor(max_workers=3)
         print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
-        knn = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'knn')
         dt = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'dt')
-        rf = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'rf')
         gbc = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'gbc')
         mlp = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'mlp')
-
         model_dict_dt = dt.result()
         model_dict_gbc = gbc.result()
         model_dict_mlp = mlp.result()
-        model_dict_knn = knn.result()
+        rf = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'rf')
+        knn = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'knn')
         model_dict_rf = rf.result()
+        model_dict_knn = knn.result()
+
         model_dict = dict()
         for model_key in model_keys:
             model_dict.update(eval('model_dict_'+model_key))
         consistency_scores_dict.setdefault(dataset, model_dict)
     return consistency_scores_dict
-###
+
 
 def _calculate_consistency(x, y, dataset, algorithm, model_key):
     print(f'---> Thread on {model_key} started')
@@ -251,7 +251,7 @@ def _calculate_consistency(x, y, dataset, algorithm, model_key):
             sign_dict.setdefault(sign, hide_mode_dict)
         metric_dict.setdefault(metric, sign_dict)
     model_dict.setdefault(model_key, metric_dict)
-    print(f'---> Thread on {model_key} finished')
+    print(f'Thread on {model_key} finished <---')
     return model_dict
 
 

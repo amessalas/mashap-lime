@@ -61,13 +61,16 @@ except FileNotFoundError:
     idx_dict = make_test_set_idx(openml_datasets_ids, trained_models_dict)
 
 try:
-    mashap_scores_dict = joblib.load(f"cache/mashap_scores.dict")
-    mashap_runtime_dict = joblib.load(f"cache/mashap_runtime.dict")
+    mashap_scores_dict = joblib.load(f"cache/mashap_scores2.dict")
+    mashap_runtime_dict = joblib.load(f"cache/mashap_runtime2.dict")
 except FileNotFoundError:
-    print("========== CALCULATING MASHAP SCORES ==========")
+    print("========== CALCULATING MASHAP2 SCORES ==========")
     (mashap_scores_dict, mashap_runtime_dict,) = calculate_cache_scores(
         openml_datasets_ids, trained_models_dict, "mashap"
     )
+    joblib.dump(mashap_scores_dict, "cache/mashap_scores2.dict")
+    joblib.dump(mashap_runtime_dict, "cache/mashap_runtime2.dict")
+
 
 try:
     lime_scores_dict = joblib.load(f"cache/lime_scores.dict")
@@ -83,13 +86,13 @@ except FileNotFoundError:
 ########################################################################
 
 try:
-    mashap_consistency_dict = joblib.load("cache/mashap_consistency.dict")
+    mashap_consistency_dict = joblib.load("cache/mashap_consistency2.dict")
 except FileNotFoundError:
-    print("========== CALCULATING MASHAP CONSISTENCY METRICS ==========")
+    print("========== CALCULATING MASHAP2 CONSISTENCY METRICS ==========")
     mashap_consistency_dict = get_consistency_metrics(
         openml_datasets_ids, algorithm="mashap"
     )
-    joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
+    joblib.dump(mashap_consistency_dict, "cache/mashap_consistency2.dict")
 
 try:
     lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
@@ -107,5 +110,5 @@ except FileNotFoundError:
 datasets = [ds for ds, v, t in openml_datasets_ids]
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
-write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime')
-print(t_test('comparison_mashap_lime.xls'))
+write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime2')
+print(t_test('comparison_mashap_lime2.xls'))
