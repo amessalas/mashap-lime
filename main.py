@@ -89,8 +89,9 @@ try:
     mashap_consistency_dict = joblib.load("cache/mashap_consistency2.dict")
 except FileNotFoundError:
     print("========== CALCULATING MASHAP2 CONSISTENCY METRICS ==========")
+    mashap_scores_dict = joblib.load(f"cache/mashap_scores2.dict")
     mashap_consistency_dict = get_consistency_metrics(
-        openml_datasets_ids, algorithm="mashap"
+        openml_datasets_ids, algorithm="mashap", scores_dict=mashap_scores_dict
     )
     joblib.dump(mashap_consistency_dict, "cache/mashap_consistency2.dict")
 
@@ -98,8 +99,9 @@ try:
     lime_consistency_dict = joblib.load("cache/lime_consistency.dict")
 except FileNotFoundError:
     print("========== CALCULATING LIME CONSISTENCY METRICS ==========")
+    lime_scores_dict = joblib.load(f"cache/lime_scores.dict")
     lime_consistency_dict = get_consistency_metrics(
-        openml_datasets_ids, algorithm="lime"
+        openml_datasets_ids, algorithm="lime", scores_dict=lime_scores_dict
     )
     joblib.dump(lime_consistency_dict, "cache/lime_consistency.dict")
 
