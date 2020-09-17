@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import joblib
 from time import time
 from contextlib import contextmanager
 from sklearn.metrics import roc_auc_score, auc
@@ -9,8 +8,8 @@ from scipy.stats import ttest_rel
 from xlwt import Workbook
 from math import ceil
 from prepare_data import fetch_data
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+
 
 ########################################################################
 # 1. Runtime
@@ -189,7 +188,7 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
         return np.mean(y_100_list, axis=0)
 
 
-def get_consistency_metrics(datasets, algorithm, scores_dict):
+def get_consistency_metrics(datasets, algorithm, scores_dict, idx_dict, trained_models_dict):
     """
     Get all 18 consistency metrics for the given datasets and models
     Cache results in '/cache'
@@ -200,14 +199,14 @@ def get_consistency_metrics(datasets, algorithm, scores_dict):
         executor = ThreadPoolExecutor(max_workers=3)
         print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
-        dt = executor.submit(_calculate_consistency, x, y, dataset, algorithm, scores_dict, 'dt')
-        gbc = executor.submit(_calculate_consistency, x, y, dataset, algorithm, scores_dict, 'gbc')
-        mlp = executor.submit(_calculate_consistency, x, y, dataset, algorithm, scores_dict, 'mlp')
+        dt = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'dt')
+        gbc = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'gbc')
+        mlp = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'mlp')
         model_dict_dt = dt.result()
         model_dict_gbc = gbc.result()
         model_dict_mlp = mlp.result()
-        rf = executor.submit(_calculate_consistency, x, y, dataset, algorithm, scores_dict, 'rf')
-        knn = executor.submit(_calculate_consistency, x, y, dataset, algorithm, scores_dict, 'knn')
+        rf = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'rf')
+        knn = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'knn')
         model_dict_rf = rf.result()
         model_dict_knn = knn.result()
 
@@ -218,12 +217,10 @@ def get_consistency_metrics(datasets, algorithm, scores_dict):
     return consistency_scores_dict
 
 
-def _calculate_consistency(x, y, dataset, scores_dict, model_key):
+def _calculate_consistency(x, y, dataset, scores_dict, idx_dict, trained_models_dict, model_key):
     print(f'---> Thread on {model_key} started')
     model_dict = dict()
     x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-    idx_dict = joblib.load("cache/idx_dict.dict")
-    trained_models_dict = joblib.load("cache/trained_models.dict")
     test_idx = idx_dict.get(dataset).get(model_key)
     x_test = x.loc[test_idx]
     y_test = y.loc[test_idx]
