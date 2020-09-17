@@ -99,9 +99,9 @@ class MASHAP:
         if not hasattr(self, "_surrogate"):
             target = type_of_target(y)
             if target == "continuous":
-                self._surrogate = XGBRFRegressor(**self.kwargs)
+                self._surrogate = XGBRFRegressor(max_depth=7, n_estimators=150)
             elif target in ["binary", "multiclass"]:
-                self._surrogate = XGBRFClassifier(**self.kwargs)
+                self._surrogate = XGBRFClassifier(max_depth=7, n_estimators=150)
             else:
                 raise ValueError(
                     "Multioutput and multilabel datasets is not supported."
