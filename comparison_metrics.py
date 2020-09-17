@@ -10,7 +10,7 @@ from xlwt import Workbook
 from math import ceil
 from prepare_data import fetch_data
 from tqdm import tqdm
-
+from concurrent.futures import ThreadPoolExecutor
 
 ########################################################################
 # 1. Runtime
@@ -196,43 +196,63 @@ def get_consistency_metrics(datasets, algorithm):
     """
     consistency_scores_dict = dict()
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
+    for dataset, version, mode in datasets:
+        executor = ThreadPoolExecutor(max_workers=5)
+        print(f"-------------- {dataset}, {algorithm} --------------")
+        x, y = fetch_data(dataset, version)
+        knn = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'knn')
+        dt = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'dt')
+        rf = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'rf')
+        gbc = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'gbc')
+        mlp = executor.submit(_calculate_consistency, x, y, dataset, algorithm, 'mlp')
+
+        model_dict_dt = dt.result()
+        model_dict_gbc = gbc.result()
+        model_dict_mlp = mlp.result()
+        model_dict_knn = knn.result()
+        model_dict_rf = rf.result()
+        model_dict = dict()
+        for model_key in model_keys:
+            model_dict.update(eval('model_dict_'+model_key))
+        consistency_scores_dict.setdefault(dataset, model_dict)
+    return consistency_scores_dict
+###
+
+def _calculate_consistency(x, y, dataset, algorithm, model_key):
+    print(f'---> Thread on {model_key} started')
+    model_dict = dict()
+    x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
     idx_dict = joblib.load("cache/idx_dict.dict")
     trained_models_dict = joblib.load("cache/trained_models.dict")
     scores_dict = joblib.load(f"cache/{algorithm}_scores.dict")
-    for dataset, version, mode in datasets:
-        print(f"-------------- {dataset}, {algorithm} --------------")
-        x, y = fetch_data(dataset, version)
-        x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-        model_dict = dict()
-        for model_key in tqdm(model_keys):
-            test_idx = idx_dict.get(dataset).get(model_key)
-            x_test = x.loc[test_idx]
-            y_test = y.loc[test_idx]
-            scores = scores_dict.get(dataset).get(model_key)
-            model = trained_models_dict.get(dataset).get(model_key)
-            metric_dict = dict()
-            for metric in ["keep", "remove"]:
-                sign_dict = dict()
-                for sign in ["positive", "negative", "absolute"]:
-                    hide_mode_dict = dict()
-                    for hide_mode in ["mask", "resample", "impute"]:
-                        mean_score = consistency_metric(
-                            x_train,
-                            x_test.copy(),
-                            y_test.copy(),
-                            metric,
-                            scores,
-                            sign,
-                            hide_mode,
-                            model,
-                        )
+    test_idx = idx_dict.get(dataset).get(model_key)
+    x_test = x.loc[test_idx]
+    y_test = y.loc[test_idx]
+    scores = scores_dict.get(dataset).get(model_key)
+    model = trained_models_dict.get(dataset).get(model_key)
+    metric_dict = dict()
+    for metric in ["keep", "remove"]:
+        sign_dict = dict()
+        for sign in ["positive", "negative", "absolute"]:
+            hide_mode_dict = dict()
+            for hide_mode in ["mask", "resample", "impute"]:
+                mean_score = consistency_metric(
+                    x_train,
+                    x_test.copy(),
+                    y_test.copy(),
+                    metric,
+                    scores,
+                    sign,
+                    hide_mode,
+                    model,
+                )
 
-                        hide_mode_dict.setdefault(hide_mode, mean_score)
-                    sign_dict.setdefault(sign, hide_mode_dict)
-                metric_dict.setdefault(metric, sign_dict)
-            model_dict.setdefault(model_key, metric_dict)
-        consistency_scores_dict.setdefault(dataset, model_dict)
-    return consistency_scores_dict
+                hide_mode_dict.setdefault(hide_mode, mean_score)
+            sign_dict.setdefault(sign, hide_mode_dict)
+        metric_dict.setdefault(metric, sign_dict)
+    model_dict.setdefault(model_key, metric_dict)
+    print(f'---> Thread on {model_key} finished')
+    return model_dict
 
 
 def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, name='comparison'):

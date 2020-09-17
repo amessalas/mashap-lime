@@ -1,11 +1,12 @@
 import numpy as np
 import shap
+import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
-from xgboost import DMatrix
-from xgboost import train as xgb_train
+from xgboost import XGBRFClassifier, XGBRFRegressor
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils import resample
 from tqdm import tqdm
+import inspect
 
 
 def lime_explainer(x_train, predict_fn, x_test, mode):
@@ -32,58 +33,86 @@ def lime_explainer(x_train, predict_fn, x_test, mode):
 
 
 def mashap_explainer(x_train, py_train, x_test, py_test):
-    mashap = MashapExplainer(x_train, py_train)
-    mashap.partial_fit(x_test, py_test)
-    shap_values = mashap.shap_values(x_test)
+    mashap = MASHAP().fit(x_train, py_train)
+    shap_values = mashap.shap_values(x_test, py_test)
     return np.array(shap_values)
 
 
-class MashapExplainer:
+class MASHAP:
+    def __init__(
+        self,
+        data=None,
+        model_output="raw",
+        feature_perturbation="interventional",
+        **kwargs,
+    ):
 
-    objective_dict = {
-        "continuous": "reg:squarederror",
-        "binary": "binary:logistic",
-        "multiclass": "multi:softmax",
-    }
+        self.data = data
+        self.model_output = model_output
+        self.feature_perturbation = feature_perturbation
+        self.kwargs = kwargs
 
-    def __init__(self, x, py):
-        self.target_type = type_of_target(py)
-        self.surrogate_model = self._create_surrogate(x, py)
-        self.explainer_ = shap.TreeExplainer(model=self.surrogate_model,
-                                             data=resample(x, n_samples=100, random_state=0),
-                                             feature_perturbation='interventional')
-
-    def _create_surrogate(self, x, py):
-        params_1 = {
-            "max_depth": 7,
-            "objective": MashapExplainer.objective_dict.get(self.target_type),
-            "eval_metric": "logloss",
-        }
-        params_2 = {"num_boost_round": 150}
-        dtrain = DMatrix(x, label=py)
-        booster = xgb_train(params_1, dtrain, **params_2)
-        return booster
-
-    def partial_fit(self, x_partial, y_partial):
-        params_1 = {
-            "max_depth": 6,
-            "objective": MashapExplainer.objective_dict.get(self.target_type),
-            "eval_metric": "logloss",
-        }
-        params_2 = {"num_boost_round": 200}
-        dtrain = DMatrix(x_partial, label=y_partial)
-
-        booster = xgb_train(
-            params_1, dtrain, xgb_model=self.surrogate_model, **params_2
+    def shap_values(
+        self,
+        X,
+        y,
+        tree_limit=None,
+        approximate=False,
+        check_additivity=True,
+        refit=True,
+    ):
+        if refit:
+            self.fit(X, y, clear=False)
+        self._explainer = shap.TreeExplainer(
+            self._surrogate,
+            data=self.data,
+            model_output=self.model_output,
+            feature_perturbation=self.feature_perturbation,
+        )
+        return self._explainer.shap_values(
+            X,
+            y,
+            tree_limit=tree_limit,
+            approximate=approximate,
+            check_additivity=check_additivity,
         )
 
-        self.surrogate_model = booster
-        self.explainer_ = shap.TreeExplainer(self.surrogate_model)
+    def _set_X_y(self, X, y, clear=True):
+        if hasattr(self, "_X_fit") and not clear:
+            X = pd.DataFrame(X)
+            y = pd.Series(y)
+            self._X_fit = self._X_fit.append(X, ignore_index=True)
+            self._y_fit = self._y_fit.append(y, ignore_index=True)
+        else:
+            self._X_fit = pd.DataFrame(X)
+            self._y_fit = pd.Series(y)
 
-    def shap_values(self, X, y=None, tree_limit=None, approximate=False):
-        """
-        Calculates and returns the Shapley values through the  TreeSHAP method
-        """
-        return self.explainer_.shap_values(
-            X, y=y, tree_limit=tree_limit, approximate=approximate
-        )
+    def fit(self, X, y, clear=True):
+        self._set_surrogate(X, y)
+        self._set_X_y(X, y, clear=clear)
+        self._surrogate.fit(self._X_fit, self._y_fit)
+        self.fidelity_ = self._surrogate.score(self._X_fit, self._y_fit)
+        return self
+
+    def _set_surrogate(self, X, y=None):
+
+        if not hasattr(self, "_surrogate"):
+            target = type_of_target(y)
+            if target == "continuous":
+                self._surrogate = XGBRFRegressor(**self.kwargs)
+            elif target in ["binary", "multiclass"]:
+                self._surrogate = XGBRFClassifier(**self.kwargs)
+            else:
+                raise ValueError(
+                    "Multioutput and multilabel datasets is not supported."
+                )
+
+    def __getattr__(self, name):
+        explainer = self.__dict__.get("_explainer", None)
+        attributes = dict(inspect.getmembers(explainer)).keys()
+        if name in attributes:
+            return getattr(explainer, name)
+        else:
+            raise AttributeError(
+                f"{self.__class__.__name__} object has no attribute {name}"
+            )

@@ -9,6 +9,7 @@ from comparison_metrics import (
     get_consistency_metrics,
     runtime_calculations,
     write_excel,
+    t_test
 )
 
 
@@ -107,3 +108,4 @@ datasets = [ds for ds, v, t in openml_datasets_ids]
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
 write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime')
+print(t_test('comparison_mashap_lime.xls'))
