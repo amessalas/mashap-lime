@@ -20,7 +20,7 @@ def timeit_context(name, time_trojan):
     yield
     elapsed_time = time() - start_time
     time_trojan[0] = ceil(elapsed_time)
-    print("{} {} seconds".format(name, ceil(elapsed_time)))
+    print(f"{name} {ceil(elapsed_time)} seconds")
 
 
 def runtime_calculations(mashap_d, lime_d, datasets):

@@ -30,7 +30,8 @@ def get_random_idx(x, n):
 def make_test_set_idx(datasets, trained_models_dict):
     """
     Create random indices for test set, so both MASHAP and LIME can use the same ones in the
-    experiments
+    experiments. Try to get a balanced set with 50 random positive and 50 random negatives instances.
+    If not successful, just get the first 100 instances of the test set.
     """
     idx_dict = dict()
     for dataset, version, mode in datasets:
@@ -42,9 +43,9 @@ def make_test_set_idx(datasets, trained_models_dict):
         for model_key, model in trained_models_dict.get(dataset).items():
             py_test = model.predict(x_test)
             if mode == "classification":
-                x_test_positive = x_test[py_test == 1]
-                x_test_negative = x_test[py_test == 0]
                 try:
+                    x_test_positive = x_test[py_test == 1]
+                    x_test_negative = x_test[py_test == 0]
                     x_test_mix = x_test_positive.loc[
                         get_random_idx(x_test_positive, 50)
                     ].append(x_test_negative.loc[get_random_idx(x_test_negative, 50)])
@@ -60,16 +61,13 @@ def make_test_set_idx(datasets, trained_models_dict):
     return idx_dict
 
 
-def calculate_cache_scores(datasets, trained_models_dict, algorithm):
+def calculate_cache_scores(datasets, trained_models_dict, idx_dict, algorithm):
     """
     Calculate MASHAP and LIME scores on each dataset and each model, store result in a dictionary
     and then cache it in 'cache/'
     """
-    predict_fn = None
     scores_dict = dict()
     time_dict = dict()
-    idx_dict = joblib.load("cache/idx_dict.dict")
-
     for dataset, version, mode in datasets:
         print(f"------------------- {dataset, algorithm} -------------------")
         x, y = fetch_data(dataset, version)
@@ -79,7 +77,7 @@ def calculate_cache_scores(datasets, trained_models_dict, algorithm):
         time_dict_i = dict()
         for model_key, model in trained_models_dict.get(dataset).items():
             idx = idx_dict.get(dataset).get(model_key)
-            x_test_mix = x_test.loc[idx]
+            x_test_100 = x_test.loc[idx]
 
             if mode == "classification":
                 predict_fn = model.predict_proba
@@ -94,14 +92,14 @@ def calculate_cache_scores(datasets, trained_models_dict, algorithm):
                 with timeit_context(
                     f"[{model}] {algorithm} runtime:", time_extractor_from_ctx_mngr
                 ):
-                    scores = lime_explainer(x_train, predict_fn, x_test_mix, mode=mode)
+                    scores = lime_explainer(x_train, predict_fn, x_test_100, mode=mode)
             elif algorithm == "mashap":
                 with timeit_context(
                     f"[{model}] {algorithm} runtime:", time_extractor_from_ctx_mngr
                 ):
                     py_train = model.predict(x_train)
-                    py_test = model.predict(x_test_mix)
-                    scores = mashap_explainer(x_train, py_train, x_test_mix, py_test)
+                    py_test_100 = model.predict(x_test_100)
+                    scores = mashap_explainer(x_train, py_train, x_test_100, py_test_100)
             else:
                 raise ValueError()
             scores_dict_i.setdefault(model_key, scores)

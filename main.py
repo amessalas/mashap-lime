@@ -66,7 +66,7 @@ try:
 except FileNotFoundError:
     print("========== CALCULATING MASHAP SCORES ==========")
     (mashap_scores_dict, mashap_runtime_dict,) = calculate_cache_scores(
-        openml_datasets_ids, trained_models_dict, "mashap"
+        openml_datasets_ids, trained_models_dict, idx_dict, "mashap"
     )
     joblib.dump(mashap_scores_dict, "cache/mashap_scores.dict")
     joblib.dump(mashap_runtime_dict, "cache/mashap_runtime.dict")
@@ -78,7 +78,7 @@ try:
 except FileNotFoundError:
     print("========== CALCULATING LIME SCORES ==========")
     (lime_scores_dict, lime_runtime_dict,) = calculate_cache_scores(
-        openml_datasets_ids, trained_models_dict, "lime"
+        openml_datasets_ids, trained_models_dict, idx_dict, "lime"
     )
 
 ########################################################################
