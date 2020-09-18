@@ -9,6 +9,7 @@ from comparison_metrics import (
     get_consistency_metrics,
     runtime_calculations,
     write_excel,
+    t_test
 )
 
 
@@ -67,6 +68,9 @@ except FileNotFoundError:
     (mashap_scores_dict, mashap_runtime_dict,) = calculate_cache_scores(
         openml_datasets_ids, trained_models_dict, "mashap"
     )
+    joblib.dump(mashap_scores_dict, "cache/mashap_scores.dict")
+    joblib.dump(mashap_runtime_dict, "cache/mashap_runtime.dict")
+
 
 try:
     lime_scores_dict = joblib.load(f"cache/lime_scores.dict")
@@ -85,8 +89,9 @@ try:
     mashap_consistency_dict = joblib.load("cache/mashap_consistency.dict")
 except FileNotFoundError:
     print("========== CALCULATING MASHAP CONSISTENCY METRICS ==========")
+    mashap_scores_dict = joblib.load(f"cache/mashap_scores.dict")
     mashap_consistency_dict = get_consistency_metrics(
-        openml_datasets_ids, algorithm="mashap"
+        openml_datasets_ids, algorithm="mashap", scores_dict=mashap_scores_dict, idx_dict=idx_dict, trained_models_dict=trained_models_dict
     )
     joblib.dump(mashap_consistency_dict, "cache/mashap_consistency.dict")
 
@@ -95,7 +100,7 @@ try:
 except FileNotFoundError:
     print("========== CALCULATING LIME CONSISTENCY METRICS ==========")
     lime_consistency_dict = get_consistency_metrics(
-        openml_datasets_ids, algorithm="lime"
+        openml_datasets_ids, algorithm="lime", scores_dict=lime_scores_dict, idx_dict=idx_dict, trained_models_dict=trained_models_dict
     )
     joblib.dump(lime_consistency_dict, "cache/lime_consistency.dict")
 
@@ -107,3 +112,4 @@ datasets = [ds for ds, v, t in openml_datasets_ids]
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
 write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime')
+print(t_test('comparison_mashap_lime.xls'))

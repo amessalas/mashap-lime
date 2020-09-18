@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import joblib
 from time import time
 from contextlib import contextmanager
 from sklearn.metrics import roc_auc_score, auc
@@ -9,7 +8,7 @@ from scipy.stats import ttest_rel
 from xlwt import Workbook
 from math import ceil
 from prepare_data import fetch_data
-from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
 
 
 ########################################################################
@@ -189,50 +188,67 @@ def consistency_metric(x_train, x_test, y_test, metric, scores, sign, hide_mode,
         return np.mean(y_100_list, axis=0)
 
 
-def get_consistency_metrics(datasets, algorithm):
+def get_consistency_metrics(datasets, algorithm, scores_dict, idx_dict, trained_models_dict):
     """
     Get all 18 consistency metrics for the given datasets and models
     Cache results in '/cache'
     """
     consistency_scores_dict = dict()
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
-    idx_dict = joblib.load("cache/idx_dict.dict")
-    trained_models_dict = joblib.load("cache/trained_models.dict")
-    scores_dict = joblib.load(f"cache/{algorithm}_scores.dict")
     for dataset, version, mode in datasets:
+        executor = ThreadPoolExecutor(max_workers=3)
         print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
-        x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-        model_dict = dict()
-        for model_key in tqdm(model_keys):
-            test_idx = idx_dict.get(dataset).get(model_key)
-            x_test = x.loc[test_idx]
-            y_test = y.loc[test_idx]
-            scores = scores_dict.get(dataset).get(model_key)
-            model = trained_models_dict.get(dataset).get(model_key)
-            metric_dict = dict()
-            for metric in ["keep", "remove"]:
-                sign_dict = dict()
-                for sign in ["positive", "negative", "absolute"]:
-                    hide_mode_dict = dict()
-                    for hide_mode in ["mask", "resample", "impute"]:
-                        mean_score = consistency_metric(
-                            x_train,
-                            x_test.copy(),
-                            y_test.copy(),
-                            metric,
-                            scores,
-                            sign,
-                            hide_mode,
-                            model,
-                        )
+        dt = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'dt')
+        gbc = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'gbc')
+        mlp = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'mlp')
+        model_dict_dt = dt.result()
+        model_dict_gbc = gbc.result()
+        model_dict_mlp = mlp.result()
+        rf = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'rf')
+        knn = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'knn')
+        model_dict_rf = rf.result()
+        model_dict_knn = knn.result()
 
-                        hide_mode_dict.setdefault(hide_mode, mean_score)
-                    sign_dict.setdefault(sign, hide_mode_dict)
-                metric_dict.setdefault(metric, sign_dict)
-            model_dict.setdefault(model_key, metric_dict)
+        model_dict = dict()
+        for model_key in model_keys:
+            model_dict.update(eval('model_dict_'+model_key))
         consistency_scores_dict.setdefault(dataset, model_dict)
     return consistency_scores_dict
+
+
+def _calculate_consistency(x, y, dataset, scores_dict, idx_dict, trained_models_dict, model_key):
+    print(f'---> Thread on {model_key} started')
+    model_dict = dict()
+    x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
+    test_idx = idx_dict.get(dataset).get(model_key)
+    x_test = x.loc[test_idx]
+    y_test = y.loc[test_idx]
+    scores = scores_dict.get(dataset).get(model_key)
+    model = trained_models_dict.get(dataset).get(model_key)
+    metric_dict = dict()
+    for metric in ["keep", "remove"]:
+        sign_dict = dict()
+        for sign in ["positive", "negative", "absolute"]:
+            hide_mode_dict = dict()
+            for hide_mode in ["mask", "resample", "impute"]:
+                mean_score = consistency_metric(
+                    x_train,
+                    x_test.copy(),
+                    y_test.copy(),
+                    metric,
+                    scores,
+                    sign,
+                    hide_mode,
+                    model,
+                )
+
+                hide_mode_dict.setdefault(hide_mode, mean_score)
+            sign_dict.setdefault(sign, hide_mode_dict)
+        metric_dict.setdefault(metric, sign_dict)
+    model_dict.setdefault(model_key, metric_dict)
+    print(f'Thread on {model_key} finished <---')
+    return model_dict
 
 
 def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, name='comparison'):
@@ -278,7 +294,7 @@ def t_test(excel):
     Implement a student's t_test with a=5% on 6 aggregated metrics (see paper)
     for MASHAP and LIME scores from the excel file  generated by `write_excel` function
     """
-    df = pd.DataFrame([], columns=['metric', 'winner', 'is_significant'])
+    df = pd.DataFrame([], columns=['metric', 'winner', 'is_significant', 'p_value'])
     for i, metric in enumerate(['keep', 'remove']):
         m = pd.read_excel(excel, sheet_name=f'Sheet {i+1}')
         m['metric'] = m['metric'].apply(lambda s: ' '.join(s.split(' ')[:2]))
@@ -302,5 +318,5 @@ def t_test(excel):
                 is_significant = 'Yes'
             else:
                 is_significant = 'No'
-            df.loc[df.size] = ([f'{metric} {sign}', winner, is_significant])
+            df.loc[df.size] = ([f'{metric} {sign}', winner, is_significant, p_value])
     return df
