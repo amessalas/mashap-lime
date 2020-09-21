@@ -8,8 +8,7 @@ from scipy.stats import ttest_rel
 from xlwt import Workbook
 from math import ceil
 from prepare_data import fetch_data
-from concurrent.futures import ThreadPoolExecutor
-
+from tqdm import tqdm
 
 ########################################################################
 # 1. Runtime
@@ -196,36 +195,24 @@ def get_consistency_metrics(datasets, algorithm, scores_dict, idx_dict, trained_
     consistency_scores_dict = dict()
     model_keys = ["knn", "dt", "rf", "gbc", "mlp"]
     for dataset, version, mode in datasets:
-        executor = ThreadPoolExecutor(max_workers=3)
         print(f"-------------- {dataset}, {algorithm} --------------")
         x, y = fetch_data(dataset, version)
-        dt = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'dt')
-        gbc = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'gbc')
-        mlp = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'mlp')
-        model_dict_dt = dt.result()
-        model_dict_gbc = gbc.result()
-        model_dict_mlp = mlp.result()
-        rf = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'rf')
-        knn = executor.submit(_calculate_consistency, x, y, dataset, scores_dict, idx_dict, trained_models_dict, 'knn')
-        model_dict_rf = rf.result()
-        model_dict_knn = knn.result()
-
         model_dict = dict()
-        for model_key in model_keys:
-            model_dict.update(eval('model_dict_'+model_key))
+        for model_key in tqdm(model_keys):
+            model = trained_models_dict.get(dataset).get(model_key)
+            test_idx = idx_dict.get(dataset).get(model_key)
+            scores = scores_dict.get(dataset).get(model_key)
+            metric_dict = _calculate_consistency_per_model(x, y, scores, test_idx, model)
+            model_dict.setdefault(model_key, metric_dict)
         consistency_scores_dict.setdefault(dataset, model_dict)
     return consistency_scores_dict
 
 
-def _calculate_consistency(x, y, dataset, scores_dict, idx_dict, trained_models_dict, model_key):
-    print(f'---> Thread on {model_key} started')
-    model_dict = dict()
+def _calculate_consistency_per_model(x, y, scores, test_idx, model):
     x_train, _, y_train, _ = train_test_split(x, y, test_size=0.3, random_state=42)
-    test_idx = idx_dict.get(dataset).get(model_key)
     x_test = x.loc[test_idx]
     y_test = y.loc[test_idx]
-    scores = scores_dict.get(dataset).get(model_key)
-    model = trained_models_dict.get(dataset).get(model_key)
+
     metric_dict = dict()
     for metric in ["keep", "remove"]:
         sign_dict = dict()
@@ -246,9 +233,7 @@ def _calculate_consistency(x, y, dataset, scores_dict, idx_dict, trained_models_
                 hide_mode_dict.setdefault(hide_mode, mean_score)
             sign_dict.setdefault(sign, hide_mode_dict)
         metric_dict.setdefault(metric, sign_dict)
-    model_dict.setdefault(model_key, metric_dict)
-    print(f'Thread on {model_key} finished <---')
-    return model_dict
+    return metric_dict
 
 
 def write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, name='comparison'):
