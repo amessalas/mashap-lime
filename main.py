@@ -106,10 +106,13 @@ except FileNotFoundError:
 
 
 ########################################################################
-# print results
+# print/save results
 ########################################################################
 datasets = [ds for ds, v, t in openml_datasets_ids]
+os.makedirs("results", exist_ok=True)
 
 runtime_calculations(mashap_runtime_dict, lime_runtime_dict, datasets)
-write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'comparison_mashap_lime')
-print(t_test('comparison_mashap_lime.xls'))
+write_excel(mashap_consistency_dict, lime_consistency_dict, datasets, 'results/comparison_mashap_lime')
+print(t_test('results/comparison_mashap_lime.xls'))
+with open('results/t_test_results.txt', 'w') as f:
+    f.write(t_test('results/comparison_mashap_lime.xls').to_string())
