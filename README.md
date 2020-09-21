@@ -9,5 +9,5 @@ To replicate the experiments:
 * Results (runtime, consistency measurements and t_test evaluation) will be stored in a new created folder called `results`
 
 <br>
-<i>Note: LIME calculations take a lot of time</i>
-<i> Note: additional packaged required for `lime_graph.ipynb` and `latex_tables_figures.py` which are not related to the experiments</i>
+<i>Note: LIME calculations take a lot of time</i> <br>
+<i>Note: additional packages required for `lime_graph.ipynb` and `latex_tables_figures.py` which are not related to the experiments</i>
