@@ -10,4 +10,4 @@ To replicate the experiments:
 
 <br>
 <i>Note 1: LIME calculations take a lot of time</i> <br>
-<i>Note 2: additional packages required for `lime_graph.ipynb` and `latex_tables_figures.py` which are not related to the experiments</i>
+<i>Note 2: additional packages (`jupyter`, `interpret`, `seaborn`) required for `lime_graph.ipynb` and `latex_tables_figures.py` which are not related to the experiments </i>
