@@ -4,7 +4,6 @@ import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 from xgboost import XGBRFClassifier, XGBRFRegressor
 from sklearn.utils.multiclass import type_of_target
-from sklearn.utils import resample
 from tqdm import tqdm
 import inspect
 
