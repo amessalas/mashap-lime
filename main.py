@@ -58,6 +58,7 @@ except FileNotFoundError:
 try:
     idx_dict = joblib.load(f"cache/idx_dict.dict")
 except FileNotFoundError:
+    print("========== MAKING FIXED TEST SETS ==========")
     idx_dict = make_test_set_idx(openml_datasets_ids, trained_models_dict)
 
 try:
