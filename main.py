@@ -75,12 +75,14 @@ except FileNotFoundError:
 
 try:
     lime_scores_dict = joblib.load(f"cache/lime_scores.dict")
-    lime_runtime_dict = joblib.load(f"cache/lime_runtime2.dict")
+    lime_runtime_dict = joblib.load(f"cache/lime_runtime.dict")
 except FileNotFoundError:
     print("========== CALCULATING LIME SCORES ==========")
     (lime_scores_dict, lime_runtime_dict,) = calculate_cache_scores(
         openml_datasets_ids, trained_models_dict, idx_dict, "lime"
     )
+    joblib.dump(lime_scores_dict, "cache/lime_scores.dict")
+    joblib.dump(lime_runtime_dict, "cache/lime_runtime.dict")
 
 ########################################################################
 # measure MASHAP and LIME consistency metrics (and cache them)
