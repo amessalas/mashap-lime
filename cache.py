@@ -61,10 +61,12 @@ def make_test_set_idx(datasets, trained_models_dict):
     return idx_dict
 
 
-def calculate_cache_scores(datasets, trained_models_dict, idx_dict, algorithm):
+def calculate_cache_scores(datasets, trained_models_dict, idx_dict, algorithm, partial=False):
     """
     Calculate MASHAP and LIME scores on each dataset and each model, store result in a dictionary
     and then cache it in 'cache/'
+    Use partial to store scores for each dataset and then aggregate all scores (can be used for LIME which takes a
+    lot of time)
     """
     scores_dict = dict()
     time_dict = dict()
@@ -105,9 +107,11 @@ def calculate_cache_scores(datasets, trained_models_dict, idx_dict, algorithm):
             scores_dict_i.setdefault(model_key, scores)
             time_dict_i.setdefault(model_key, time_extractor_from_ctx_mngr[0])
             print(time_dict_i)
-
         scores_dict.setdefault(dataset, scores_dict_i)
         time_dict.setdefault(dataset, time_dict_i)
+        if partial:
+            joblib.dump(scores_dict, f'cache/{algorithm}_{dataset}_scores_partial.dict')
+            joblib.dump(time_dict, f'cache/{algorithm}_{dataset}_runtime_partial.dict')
 
     return (
         scores_dict,
