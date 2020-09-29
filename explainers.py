@@ -33,7 +33,7 @@ def lime_explainer(x_train, predict_fn, x_test, mode):
 
 def mashap_explainer(x_train, py_train, x_test, py_test):
     mashap = MASHAP().fit(x_train, py_train)
-    shap_values = mashap.shap_values(x_test, py_test)
+    shap_values = mashap.shap_values(x_test, py_test, refit=True)
     return np.array(shap_values)
 
 
@@ -57,7 +57,7 @@ class MASHAP:
         y,
         tree_limit=None,
         approximate=False,
-        check_additivity=True,
+        check_additivity=False,
         refit=True,
     ):
         if refit:

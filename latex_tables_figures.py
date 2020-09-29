@@ -13,19 +13,16 @@ from prepare_data import fetch_data
 openml_datasets = [
     ("adult", 2, "classification"),
     ("default-of-credit-card-clients", "active", "classification"),
-    ("musk", "active", "classification"),
-    ("hill-valley", 1, "classification"),
-    ("ozone-level-8hr", "active", "classification"),
+    ("nomao", "active", "classification"),
+    ("jasmine", 1, "classification"),
     ("pc1", "active", "classification"),
     ("compas-two-years", 3, "classification"),
     ("elevators", 2, "classification"),
-    ("spambase", "active", "classification"),
     ("climate-model-simulation-crashes", 1, "classification"),
     ("kr-vs-kp", "active", "classification"),
     ("cylinder-bands", "active", "classification"),
     ("ionosphere", "active", "classification"),
     ("kc3", "active", "classification"),
-    ("qsar-biodeg", "active", "classification"),
     ("SPECTF", 1, "classification"),
     ("credit-g", "active", "classification"),
     ("kc1", "active", "classification"),
@@ -34,7 +31,7 @@ openml_datasets = [
     ("twonorm", "active", "classification"),
     ("bank-marketing", 1, "classification"),
     ("vote", 1, "classification"),
-    ("credit-approval", "active", "classification"),
+    ("credit-approval", "active", "classification")
 ]
 
 

@@ -299,7 +299,7 @@ def t_test(excel):
                     winner = 'MASHAP'
 
             p_value = ttest_rel(mashap, lime)[1]
-            if p_value < 0.1:
+            if p_value < 0.05:
                 is_significant = 'Yes'
             else:
                 is_significant = 'No'
